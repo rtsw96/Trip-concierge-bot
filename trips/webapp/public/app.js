@@ -153,8 +153,9 @@
     if (!res.ok) return fail(`The trip app had a problem (${res.status}). Try Refresh in a minute.`);
     const data = await res.json();
     state.owner = Boolean(data.owner);
-    state.trips = (data.trips || []).slice().sort((a, b) =>
-      (a.trip.status === "open" ? 0 : 1) - (b.trip.status === "open" ? 0 : 1)
+    // The trip you're on now comes first: live, then being planned, then closed; newest first within each.
+    const rank = (x) => (x.trip.status !== "open" ? 2 : x.trip.phase === "planning" ? 1 : 0);
+    state.trips = (data.trips || []).slice().sort((a, b) => rank(a) - rank(b)
       || String(b.trip.start || b.trip.created || "").localeCompare(String(a.trip.start || a.trip.created || "")));
     if (!state.trips.length) {
       return fail("You're not on a trip here yet. Post in your trip's group once (or send /join) so the bot links "
